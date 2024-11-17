@@ -1,1 +1,1 @@
-from .negative_word_check_views import *
+from .negative_word_check import *
