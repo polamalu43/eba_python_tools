@@ -2,10 +2,15 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
     <title>EBA-Pythonツール</title>
 </head>
 <body>
-    {% block content %}
-    {% endblock %}
+    {% block header %}{% endblock %}
+    {% block content %}{% endblock %}
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
 </body>
 </html>
