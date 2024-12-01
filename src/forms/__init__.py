@@ -1,2 +1,2 @@
-from .negative_word_check import *
-from .test import *
+from .negative_word_check_form import *
+from .test_form import *

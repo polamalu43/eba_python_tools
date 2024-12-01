@@ -1,7 +1,9 @@
 from django.urls import path
 from . import views
-from .views.test import Test
+from .views.test_view import TestView
+from .views.negative_word_check_view import NegativeWordCheckView
 
 urlpatterns = [
-    path("test/", Test.as_view(), name="index"),
+    path("test/", TestView.as_view(), name="index"),
+    path("nword/", NegativeWordCheckView.as_view(), name="index"),
 ]
