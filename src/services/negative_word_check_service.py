@@ -39,26 +39,26 @@ class NegativeWordCheckService(BaseService):
         self.update_gspread_col_data(env('TARGET_GSPREAD_URL'), 1, 1)
 
     def __get_nword_url(self, options):
-        baseUrl='https://eba-report.xyz/weekly_report_search'
-        pageParam = 'page=' + options['page']
-        searchStringParam = 'search_string=' + options['searchString']
-        memberNameParam = 'member_name=' + options['memberName']
-        maxPageCountParam = 'max_page_count=' + options['maxPageCount']
-        ymFromParam = 'ym_from=' + options['ymFrom']
-        weekFromParam = 'week_from=' + options['weekFrom']
-        ymToParam = 'ym_to=' + options['ymTo']
-        weekToParam = 'week_to=' + options['weekTo']
-        searchParam = 'search=' + options['search']
-        url = baseUrl + '?' \
-            + pageParam + '&' \
-            + searchStringParam + '&' \
-            + memberNameParam + '&' \
-            + maxPageCountParam + '&' \
-            + ymFromParam + '&' \
-            + weekFromParam + '&' \
-            + ymToParam + '&' \
-            + weekToParam + '&' \
-            + searchParam
+        base_url=env('WEEKLY_REPORT_SEARCH')
+        page_param = 'page=' + options['page']
+        search_string_param = 'search_string=' + options['search_string']
+        member_name_param = 'member_name=' + options['member_name']
+        max_page_count_param = 'max_page_count=' + options['max_page_count']
+        ym_from_param = 'ym_from=' + options['ym_from']
+        week_from_param = 'week_from=' + options['week_from']
+        ym_to_param = 'ym_to=' + options['ym_to']
+        week_to_param = 'week_to=' + options['week_to']
+        search_param = 'search=' + options['search']
+        url = base_url + '?' \
+            + page_param + '&' \
+            + search_string_param + '&' \
+            + member_name_param + '&' \
+            + max_page_count_param + '&' \
+            + ym_from_param + '&' \
+            + week_from_param + '&' \
+            + ym_to_param + '&' \
+            + week_to_param + '&' \
+            + search_param
         return url
 
     def __count_page(self, pages):

@@ -12,16 +12,16 @@ class NegativeWordCheckView(View):
     def get(self, request):
         options = {
             'page': '1',
-            'searchString': 'あ',
-            'memberName': '',
-            'maxPageCount': '50',
-            'ymFrom': '2024-1',
-            'weekFrom': '1',
-            'ymTo': '2024-12',
-            'weekTo': '1',
+            'search_string': 'あ',
+            'member_name': '',
+            'max_page_count': '50',
+            'ym_from': '2024-1',
+            'week_from': '1',
+            'ym_to': '2024-12',
+            'week_to': '1',
             'search': '',
         }
-        count = self.nword_check_service.get_nwords()
+        count = self.nword_check_service.count_target_nword(options)
         context = {
             'count': count
         }
