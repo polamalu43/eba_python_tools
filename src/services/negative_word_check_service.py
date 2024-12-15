@@ -9,8 +9,16 @@ from ..utils.env_utils import env
 from ..utils.common_utils import debug
 
 class NegativeWordCheckService(BaseService):
-    def count_target_nword(self, options):
+    def exec(self, options, latest_flg):
         self.login()
+        nword_list = self.__get_nword_list()
+        count = 0
+        for nword in nword_list:
+            options['search_string'] = nword
+            count += self.__count_target_nword(options)
+            debug(count)
+
+    def __count_target_nword(self, options):
         url = self.__get_nword_url(options)
         self.driver.get(url)
         pages = self.driver.find_element(By.XPATH, value='//div[@class="pagination_navi"]')
@@ -32,10 +40,10 @@ class NegativeWordCheckService(BaseService):
             count_nword = self.__count_table_row(table)
         return count_nword
 
-    def get_nwords(self):
+    def __get_nword_list(self):
         return self.get_gspread_col_data(env('TARGET_GSPREAD_URL'), 0, 1)
 
-    def update_nwords(self):
+    def __update_nword_list(self):
         self.update_gspread_col_data(env('TARGET_GSPREAD_URL'), 1, 1)
 
     def __get_nword_url(self, options):

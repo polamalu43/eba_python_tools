@@ -21,8 +21,8 @@ class NegativeWordCheckView(View):
             'week_to': '1',
             'search': '',
         }
-        count = self.nword_check_service.count_target_nword(options)
+        count = self.nword_check_service.exec(options)
         context = {
-            'count': count
+            'count': 1
         }
         return render(request, 'pages/negative_word_check.html', context)
