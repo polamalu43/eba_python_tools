@@ -6,19 +6,36 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from time import sleep
 from ..utils.env_utils import env
-from ..utils.common_utils import debug
+from ..utils.common_utils import debug, get_week_of_month
 from selenium.webdriver.remote.webelement import WebElement
+from datetime import datetime, date
 
 class NegativeWordCheckService(BaseService):
-    def exec(self, options: dict[str], latest_flg: bool):
+    def exec(self, options: dict[str], latest_flg: bool) -> None:
         self.login()
-        nword_list = self.__get_nword_list()
-        count = 0
-        for nword in nword_list:
-            options['search_string'] = nword
-            options['page'] = '1'
-            count += self.__count_target_range_nword(options)
-        debug(count)
+        if latest_flg == True:
+            today = datetime.today().date()
+            week_of_month = get_week_of_month(today)
+            formatted_date = today.strftime('%Y-%m')
+            options['ym_from'] = formatted_date
+            options['week_from'] = str(week_of_month)
+            options['ym_to'] = formatted_date
+            options['week_to'] = str(week_of_month)
+            nword_list = self.__get_nword_list()
+            count = 0
+            for nword in nword_list:
+                options['search_string'] = nword
+                options['page'] = '1'
+                count += self.__count_target_range_nword(options)
+                debug(options)
+                debug(count)
+        else:
+            nword_list = self.__get_nword_list()
+            count = 0
+            for nword in nword_list:
+                options['search_string'] = nword
+                options['page'] = '1'
+                count += self.__count_target_range_nword(options)
 
     def __count_target_range_nword(self, options: dict[str]) -> int:
         """
@@ -26,22 +43,22 @@ class NegativeWordCheckService(BaseService):
         """
         url = self.__get_nword_url(options)
         self.driver.get(url)
-        pages = self.driver.find_element(By.XPATH, value='//div[@class="pagination_navi"]')
+        pages = self.driver.find_elements(By.XPATH, value='//div[@class="pagination_navi"]')
         count_page = self.__count_page(pages)
         count_nword = 0
         if count_page >= 2:
             for i in range(1, count_page + 1):
                 if i == 1:
-                    table = self.driver.find_element(By.XPATH, value='//table[@name="contact"]')
+                    table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
                     count_nword += self.__count_table_row(table)
                     continue
                 options['page'] = str(i)
                 url = self.__get_nword_url(options)
                 self.driver.get(url)
-                table = self.driver.find_element(By.XPATH, value='//table[@name="contact"]')
+                table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
                 count_nword += self.__count_table_row(table)
         else:
-            table = self.driver.find_element(By.XPATH, value='//table[@name="contact"]')
+            table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
             count_nword = self.__count_table_row(table)
         return count_nword
 
@@ -81,7 +98,9 @@ class NegativeWordCheckService(BaseService):
         """
         週報検索ページ検索結果のページ数を数える
         """
-        parse_html_for_pages = self.get_parse_html(pages.get_attribute('outerHTML'))
+        if not pages:
+            return 0
+        parse_html_for_pages = self.get_parse_html(pages[0].get_attribute('outerHTML'))
         page_elements = parse_html_for_pages.find_all('span', class_='pager_text')
         filtered_page_elements = [
             element for element in page_elements
@@ -93,6 +112,8 @@ class NegativeWordCheckService(BaseService):
         """
         週報検索ページ検索結果のテーブル行数を数える
         """
-        parse_html_for_table = self.get_parse_html(table.get_attribute('outerHTML'))
+        if not table:
+            return 0
+        parse_html_for_table = self.get_parse_html(table[0].get_attribute('outerHTML'))
         teble_elements = parse_html_for_table.find_all('td', class_='weekly_report_search-td')
         return len(teble_elements)

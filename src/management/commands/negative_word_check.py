@@ -29,7 +29,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         from_split = options['from'].split(",")
         to_split = options['to'].split(",")
-        yes_word_list = {'true', 'yes', 'y', '1'}
+        yes_word_list = {'true', 'yes', 'y'}
         latest_flg = options['latest'].strip().lower() in yes_word_list
 
         ym_from = from_split[0]
