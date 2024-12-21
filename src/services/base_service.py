@@ -1,4 +1,3 @@
-import logging
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
@@ -14,6 +13,8 @@ from ..constants import *
 from ..utils.env_utils import env
 from ..utils.common_utils import debug
 import json
+from selenium.webdriver.remote.webelement import WebElement
+from typing import Type
 
 class BaseService():
     def __init__(self):
@@ -23,11 +24,11 @@ class BaseService():
         self.options.add_argument('--disable-dev-shm-usage')
         self.driver = webdriver.Chrome(self.options)
 
-    def login(self):
+    def login(self) -> None:
         self.login_basic_authentication()
         self.login_index_authentication()
 
-    def login_basic_authentication(self):
+    def login_basic_authentication(self) -> None:
         self.driver.execute_cdp_cmd("Network.enable", {})
         self.driver.execute_cdp_cmd(
             "Network.setExtraHTTPHeaders",
@@ -39,11 +40,11 @@ class BaseService():
             }
         )
 
-    def get_authorization_header(self, user, password):
+    def get_authorization_header(self, user: str, password: str) -> dict[str]:
         b64 = "Basic " + base64.b64encode('{}:{}'.format(user, password).encode('utf-8')).decode('utf-8')
         return {"Authorization": b64}
 
-    def login_index_authentication(self):
+    def login_index_authentication(self) -> None:
         self.driver.get(EBA_REPORT_INDEX_URL)
         self.element(selector='//input[@name="login_id"]', _type=By.XPATH, style='input', text=env('AUTHENTICATION_USER_NAME'))
         self.element(selector='//input[@name="login_pass"]', _type=By.XPATH, style='input', text=env('INDEX_AUTHENTICATION_PASSWORD'))
@@ -63,7 +64,7 @@ class BaseService():
         if style == 'input':
             element.send_keys(text)
 
-    def get_parse_html(self, html):
+    def get_parse_html(self, html: WebElement) -> BeautifulSoup:
         return BeautifulSoup(html, 'html.parser')
 
     def authenticate_gspread(self):
@@ -76,16 +77,16 @@ class BaseService():
         credentials = Credentials.from_service_account_info(service_account_info, scopes=scope)
         return gspread.authorize(credentials)
 
-    def get_gspread_col_data(self, gspread_url, worksheet_name, col):
+    def get_gspread_col_data(self, gspread_url: str, worksheet_name: int, col: int) -> Type[object]:
         worksheet = self.get_gspread_worksheet(gspread_url, worksheet_name)
         data = worksheet.col_values(col)
         return data
 
-    def get_gspread_worksheet(self, gspread_url, worksheet_name):
+    def get_gspread_worksheet(self, gspread_url: str, worksheet_name: int) -> Type[object]:
         gc = self.authenticate_gspread()
         gspread = gc.open_by_url(gspread_url)
         worksheet = gspread.get_worksheet(worksheet_name)
         return worksheet
 
-    def update_gspread_col_data(self, gspread_url, worksheet_name):
+    def update_gspread_col_data(self, gspread_url, worksheet_name: str):
         worksheet = self.get_gspread_worksheet(gspread_url, worksheet_name)

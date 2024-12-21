@@ -7,9 +7,10 @@ from selenium.webdriver.chrome.options import Options
 from time import sleep
 from ..utils.env_utils import env
 from ..utils.common_utils import debug
+from selenium.webdriver.remote.webelement import WebElement
 
 class NegativeWordCheckService(BaseService):
-    def exec(self, options, latest_flg):
+    def exec(self, options: dict[str], latest_flg: bool):
         self.login()
         nword_list = self.__get_nword_list()
         count = 0
@@ -19,7 +20,10 @@ class NegativeWordCheckService(BaseService):
             count += self.__count_target_range_nword(options)
         debug(count)
 
-    def __count_target_range_nword(self, options):
+    def __count_target_range_nword(self, options: dict[str]) -> int:
+        """
+        指定した範囲のネガティブワードの件数を合計で出力する。
+        """
         url = self.__get_nword_url(options)
         self.driver.get(url)
         pages = self.driver.find_element(By.XPATH, value='//div[@class="pagination_navi"]')
@@ -47,7 +51,10 @@ class NegativeWordCheckService(BaseService):
     def __update_nword_list(self):
         self.update_gspread_col_data(env('TARGET_GSPREAD_URL'), 1, 1)
 
-    def __get_nword_url(self, options):
+    def __get_nword_url(self, options: dict[str]) -> str:
+        """
+        週報システムの週報検索ページにアクセスし必要なデータを取得するためのURLを生成
+        """
         base_url=env('WEEKLY_REPORT_SEARCH')
         page_param = 'page=' + options['page']
         search_string_param = 'search_string=' + options['search_string']
@@ -70,7 +77,10 @@ class NegativeWordCheckService(BaseService):
             + search_param
         return url
 
-    def __count_page(self, pages):
+    def __count_page(self, pages: WebElement) -> int:
+        """
+        週報検索ページ検索結果のページ数を数える
+        """
         parse_html_for_pages = self.get_parse_html(pages.get_attribute('outerHTML'))
         page_elements = parse_html_for_pages.find_all('span', class_='pager_text')
         filtered_page_elements = [
@@ -79,7 +89,10 @@ class NegativeWordCheckService(BaseService):
         ]
         return len(filtered_page_elements)
 
-    def __count_table_row(self, table):
+    def __count_table_row(self, table: WebElement) -> int:
+        """
+        週報検索ページ検索結果のテーブル行数を数える
+        """
         parse_html_for_table = self.get_parse_html(table.get_attribute('outerHTML'))
         teble_elements = parse_html_for_table.find_all('td', class_='weekly_report_search-td')
         return len(teble_elements)
