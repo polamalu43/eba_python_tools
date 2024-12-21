@@ -15,17 +15,18 @@ class NegativeWordCheckService(BaseService):
         count = 0
         for nword in nword_list:
             options['search_string'] = nword
-            count += self.__count_target_nword(options)
-            debug(count)
+            options['page'] = '1'
+            count += self.__count_target_range_nword(options)
+        debug(count)
 
-    def __count_target_nword(self, options):
+    def __count_target_range_nword(self, options):
         url = self.__get_nword_url(options)
         self.driver.get(url)
         pages = self.driver.find_element(By.XPATH, value='//div[@class="pagination_navi"]')
         count_page = self.__count_page(pages)
         count_nword = 0
         if count_page >= 2:
-            for i in range(1, count_page-1):
+            for i in range(1, count_page + 1):
                 if i == 1:
                     table = self.driver.find_element(By.XPATH, value='//table[@name="contact"]')
                     count_nword += self.__count_table_row(table)
@@ -71,8 +72,12 @@ class NegativeWordCheckService(BaseService):
 
     def __count_page(self, pages):
         parse_html_for_pages = self.get_parse_html(pages.get_attribute('outerHTML'))
-        pages_elements = parse_html_for_pages.find_all('span', class_='pager_text')
-        return len(pages_elements)
+        page_elements = parse_html_for_pages.find_all('span', class_='pager_text')
+        filtered_page_elements = [
+            element for element in page_elements
+            if not any(keyword in element.text for keyword in ['前へ', '後へ', '最初へ', '最後へ'])
+        ]
+        return len(filtered_page_elements)
 
     def __count_table_row(self, table):
         parse_html_for_table = self.get_parse_html(table.get_attribute('outerHTML'))
