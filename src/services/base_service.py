@@ -50,7 +50,16 @@ class BaseService():
         self.element(selector='//input[@name="login_pass"]', _type=By.XPATH, style='input', text=env('INDEX_AUTHENTICATION_PASSWORD'))
         self.element(selector='//button[@name="accept"]', _type=By.XPATH, style='click')
 
-    def element(self, selector='', _type='xpath', multi=False, target_num=0, style='get', text='', non_sleep=False):
+    def element(
+        self,
+        selector: str = '',
+        _type: str = 'xpath',
+        multi: bool = False,
+        target_num: int =0,
+        style: str ='get',
+        text: str = '',
+        non_sleep: bool = False
+    ):
         if multi:
             element = self.driver.find_elements(by=_type, value=selector)[target_num]
         else:
@@ -88,5 +97,5 @@ class BaseService():
         worksheet = gspread.get_worksheet(worksheet_name)
         return worksheet
 
-    def update_gspread_col_data(self, gspread_url, worksheet_name: str):
+    def update_gspread_col_data(self, gspread_url: str, worksheet_name: str):
         worksheet = self.get_gspread_worksheet(gspread_url, worksheet_name)
