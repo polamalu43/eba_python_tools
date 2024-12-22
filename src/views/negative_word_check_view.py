@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from ..forms import Test
 from django.views import View
 import logging
 from ..services.negative_word_check_service import NegativeWordCheckService

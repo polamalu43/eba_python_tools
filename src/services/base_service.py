@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import base64
 from time import sleep
 from ..constants import *
-from ..utils.env_utils import env
+from ..utils.common_utils import env
 from selenium.webdriver.remote.webelement import WebElement
 
 class BaseService():

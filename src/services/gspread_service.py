@@ -1,7 +1,7 @@
 import gspread
 from google.oauth2.service_account import Credentials
 from ..constants import *
-from ..utils.env_utils import env
+from ..utils.common_utils import env
 import json
 from typing import Type
 

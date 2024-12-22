@@ -1,5 +1,14 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+import os
+import environ
+from pathlib import Path
+
+def env(key):
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent
+    env = environ.Env()
+    env.read_env(os.path.join(BASE_DIR, '.env'))
+    return env(key)
 
 def debug(value: any) -> None:
     return logging.debug(print(value))
@@ -31,3 +40,8 @@ def get_week_of_month(date: datetime.date, start_day_of_week: int=0) -> int:
     week_number = (days_since_month_start - 1) // 7 + 1
     return week_number
 
+def get_previous_monday(date: datetime) -> datetime | None:
+    if date is None:
+        return None
+    weekday = date.weekday()
+    return date - timedelta(days=weekday + 7)

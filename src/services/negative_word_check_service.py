@@ -1,7 +1,7 @@
 from .base_service import BaseService
 from selenium.webdriver.common.by import By
-from ..utils.env_utils import env
-from ..utils.common_utils import debug, get_week_of_month
+from ..utils.common_utils import env
+from ..utils.common_utils import debug, get_week_of_month, get_previous_monday
 from selenium.webdriver.remote.webelement import WebElement
 from datetime import datetime
 from .gspread_service import GspreadService
@@ -38,7 +38,8 @@ class NegativeWordCheckService(BaseService):
         typeがlatestの時に実行する処理
         """
         today = datetime.today().date()
-        week_of_month = get_week_of_month(today)
+        previous_monday = get_previous_monday(today)
+        week_of_month = get_week_of_month(previous_monday)
         formatted_date = today.strftime('%Y-%m')
         options['ym_from'] = formatted_date
         options['week_from'] = str(week_of_month)
@@ -46,15 +47,16 @@ class NegativeWordCheckService(BaseService):
         options['week_to'] = str(week_of_month)
         nword_list = self.__get_nword_list()
         count = 0
+
         for nword in nword_list:
             options['search_string'] = nword
             options['page'] = '1'
             count += self.__count_target_range_nword(options)
+
         records = {
             'date':formatted_date + ' 第' + str(week_of_month) + '週',
             'count': count,
         }
-        debug(records)
         self.__insert_nword_numbers(records)
 
     def __count_target_range_nword(self, options: dict[str]) -> int:
