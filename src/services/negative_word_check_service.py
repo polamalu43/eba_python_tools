@@ -19,19 +19,10 @@ class NegativeWordCheckService(BaseService):
         self.login()
         if type in LATEST_TYPE_WORDS:
             self.__exec_latest_type(options)
+        elif type in GROUPING_TYPE_WORDS:
+            self.__exec_grouping_type(options)
         else:
-            nword_list = self.__get_nword_list()
-            count = 0
-            for nword in nword_list:
-                options['search_string'] = nword
-                options['page'] = '1'
-                count += self.__count_target_range_nword(options)
-            records = {
-                'date': options['ym_from'] + ' 第' + options['week_from'] + '週 ~ ' + \
-                    options['ym_to'] + ' 第' + options['week_to'] + '週',
-                'count': count,
-            }
-            self.__insert_nword_numbers(records)
+            self.__exec_sum_type(options)
 
     def __exec_latest_type(self, options: dict[str]) -> None:
         """
@@ -59,7 +50,58 @@ class NegativeWordCheckService(BaseService):
         }
         self.__insert_nword_numbers(records)
 
-    def __count_target_range_nword(self, options: dict[str]) -> int:
+    def __exec_grouping_type(self, options: dict[str]) -> None:
+        """
+        typeがgroupingの時に実行する処理
+        """
+        nword_list = self.__get_nword_list()
+        count_list = {}
+        for nword in nword_list:
+            options['search_string'] = nword
+            options['page'] = WEEKLY_REPORT_FIRST_PAGE
+            self.__count_nword_grouping(options, count_list)
+
+    def __exec_sum_type(self, options: dict[str]) -> None:
+        """
+        typeがsumの時に実行する処理
+        """
+        nword_list = self.__get_nword_list()
+        count = 0
+        for nword in nword_list:
+            options['search_string'] = nword
+            options['page'] = '1'
+            count += self.__count_nword_sum(options)
+        records = {
+            'date': options['ym_from'] + ' 第' + options['week_from'] + '週 ~ ' + \
+                options['ym_to'] + ' 第' + options['week_to'] + '週',
+            'count': count,
+        }
+        self.__insert_nword_numbers(records)
+
+    def __count_nword_grouping(self, options: dict[str], count_list: dict[str | int]) -> None:
+        """
+        指定した範囲のネガティブワードの件数を合計で出力する。
+        """
+        url = self.__get_nword_url(options)
+        self.driver.get(url)
+        pages = self.driver.find_elements(By.XPATH, value='//div[@class="pagination_navi"]')
+        count_page = self.__count_page(pages)
+        if count_page >= 2:
+            for i in range(1, count_page + 1):
+                if i == 1:
+                    table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
+                    self.__count_table_row_grouping(table, count_list)
+                    continue
+                options['page'] = str(i)
+                url = self.__get_nword_url(options)
+                self.driver.get(url)
+                table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
+                self.__count_table_row_grouping(table, count_list)
+        else:
+            table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
+            self.__count_table_row_grouping(table, count_list)
+
+    def __count_nword_sum(self, options: dict[str]) -> int:
         """
         指定した範囲のネガティブワードの件数を合計で出力する。
         """
@@ -155,7 +197,7 @@ class NegativeWordCheckService(BaseService):
         filtered_page_elements = [
             element for element in page_elements
             if not any(
-                keyword in element.text for keyword in ['前へ', '後へ', '最初へ', '最後へ']
+                keyword in element.text for keyword in EXCEPTION_WEEKLY_REPORT_KEYWORDS
             )
         ]
         return len(filtered_page_elements)
@@ -169,3 +211,16 @@ class NegativeWordCheckService(BaseService):
         parse_html_for_table = self.get_parse_html(table[0].get_attribute('outerHTML'))
         teble_elements = parse_html_for_table.find_all('td', class_='weekly_report_search-td')
         return len(teble_elements)
+
+    def __count_table_row_grouping(self, table: dict[WebElement], count_list: dict[str | int]) -> None:
+        """
+        週報検索ページ検索結果のテーブル行数を数える
+        """
+        if not table:
+            return 0
+        parse_html_for_table = self.get_parse_html(table[0].get_attribute('outerHTML'))
+        tr_elements = parse_html_for_table.select('tr > td:nth-of-type(2)')
+        debug(tr_elements)
+        return
+        return len(teble_elements)
+

@@ -1,4 +1,3 @@
-from datetime import datetime
 from django.core.management.base import BaseCommand, CommandError
 from ...services.negative_word_check_service import NegativeWordCheckService
 from ...utils.common_utils import debug, errorlog
@@ -34,7 +33,6 @@ class Command(BaseCommand):
         それ以外のケースで空の場合はエラーを発生させる。
         """
         type = options['type'] if not options['type'] == '' else 'l'
-
         try:
             if not type in LATEST_TYPE_WORDS and not self.__is_from_and_to(options['from'], options['to']):
                 raise ValueError
@@ -57,10 +55,10 @@ class Command(BaseCommand):
             week_to = ''
 
         search_options = {
-            'page': '1',
+            'page': WEEKLY_REPORT_PAGE,
             'search_string': '',
             'member_name': '',
-            'max_page_count': '50',
+            'max_page_count': WEEKLY_REPORT_MAX_PAGE,
             'ym_from': ym_from,
             'week_from': week_from,
             'ym_to': ym_to,
