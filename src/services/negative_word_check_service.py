@@ -17,24 +17,7 @@ class NegativeWordCheckService(BaseService):
         """
         self.login()
         if latest_flg == True:
-            today = datetime.today().date()
-            week_of_month = get_week_of_month(today)
-            formatted_date = today.strftime('%Y-%m')
-            options['ym_from'] = formatted_date
-            options['week_from'] = str(week_of_month)
-            options['ym_to'] = formatted_date
-            options['week_to'] = str(week_of_month)
-            nword_list = self.__get_nword_list()
-            count = 0
-            for nword in nword_list:
-                options['search_string'] = nword
-                options['page'] = '1'
-                count += self.__count_target_range_nword(options)
-            records = {
-                'date':formatted_date + ' 第' + str(week_of_month) + '週',
-                'count': count,
-            }
-            self.__input_nword_numbers(records)
+            self.__exec_latest_mode(options)
         else:
             nword_list = self.__get_nword_list()
             count = 0
@@ -42,6 +25,29 @@ class NegativeWordCheckService(BaseService):
                 options['search_string'] = nword
                 options['page'] = '1'
                 count += self.__count_target_range_nword(options)
+
+    def __exec_latest_mode(self, options: dict[str]) -> None:
+        """
+        latest_flgがTrueの時に実行する処理
+        """
+        today = datetime.today().date()
+        week_of_month = get_week_of_month(today)
+        formatted_date = today.strftime('%Y-%m')
+        options['ym_from'] = formatted_date
+        options['week_from'] = str(week_of_month)
+        options['ym_to'] = formatted_date
+        options['week_to'] = str(week_of_month)
+        nword_list = self.__get_nword_list()
+        count = 0
+        for nword in nword_list:
+            options['search_string'] = nword
+            options['page'] = '1'
+            count += self.__count_target_range_nword(options)
+        records = {
+            'date':formatted_date + ' 第' + str(week_of_month) + '週',
+            'count': count,
+        }
+        self.__insert_nword_numbers(records)
 
     def __count_target_range_nword(self, options: dict[str]) -> int:
         """
@@ -138,7 +144,9 @@ class NegativeWordCheckService(BaseService):
         page_elements = parse_html_for_pages.find_all('span', class_='pager_text')
         filtered_page_elements = [
             element for element in page_elements
-            if not any(keyword in element.text for keyword in ['前へ', '後へ', '最初へ', '最後へ'])
+            if not any(
+                keyword in element.text for keyword in ['前へ', '後へ', '最初へ', '最後へ']
+            )
         ]
         return len(filtered_page_elements)
 
