@@ -38,7 +38,7 @@ class BaseService():
         return {"Authorization": b64}
 
     def login_index_authentication(self) -> None:
-        self.driver.get(EBA_REPORT_INDEX_URL)
+        self.driver.get(env('EBA_REPORT_INDEX_URL'))
         self.element(selector='//input[@name="login_id"]', _type=By.XPATH, style='input', text=env('AUTHENTICATION_USER_NAME'))
         self.element(selector='//input[@name="login_pass"]', _type=By.XPATH, style='input', text=env('INDEX_AUTHENTICATION_PASSWORD'))
         self.element(selector='//button[@name="accept"]', _type=By.XPATH, style='click')

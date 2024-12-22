@@ -4,6 +4,9 @@ from datetime import datetime
 def debug(value: any) -> None:
     return logging.debug(print(value))
 
+def errorlog(value: any) -> None:
+    return logging.error(value, exc_info=True)
+
 def get_week_of_month(date: datetime.date, start_day_of_week: int=0) -> int:
     """
     月の週番号を取得する。

@@ -7,9 +7,12 @@ from typing import Type
 
 class GspreadService():
     def authenticate_gspread(self):
+        """
+        try catchする
+        """
         scope = [
-            GSPREAD_AUTH_SHEETS_URL,
-            GSPREAD_AUTH_DRIVE_URL,
+            env('GSPREAD_AUTH_SHEETS_URL'),
+            env('GSPREAD_AUTH_DRIVE_URL'),
         ]
         credentials_json = env('GSPREAD_CREDENTIAL_JSON')
         service_account_info = json.loads(credentials_json)

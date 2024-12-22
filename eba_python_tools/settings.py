@@ -156,6 +156,26 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+                'django': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
     },
 
 }

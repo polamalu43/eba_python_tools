@@ -1,7 +1,8 @@
 from datetime import datetime
 from django.core.management.base import BaseCommand, CommandError
 from ...services.negative_word_check_service import NegativeWordCheckService
-from ...utils.common_utils import debug
+from ...utils.common_utils import debug, errorlog
+from ...constants import *
 
 class Command(BaseCommand):
     help = "指定した期間のネガティブワード件数を抽出"
@@ -20,22 +21,40 @@ class Command(BaseCommand):
             type=str
         )
         parser.add_argument(
-            "-latest",
+            "-type",
             action="store",
-            default='no',
+            default='',
             type=str
         )
 
     def handle(self, *args, **options):
-        from_split = options['from'].split(",")
-        to_split = options['to'].split(",")
-        yes_word_list = {'true', 'yes', 'y'}
-        latest_flg = options['latest'].strip().lower() in yes_word_list
+        """
+        コマンド処理の制御。
+        typeがlatestの時のみfromとtoのオプションが空なのを許容する。
+        それ以外のケースで空の場合はエラーを発生させる。
+        """
+        type = options['type'] if not options['type'] == '' else 'l'
 
-        ym_from = from_split[0]
-        week_from = from_split[1]
-        ym_to = to_split[0]
-        week_to = to_split[1]
+        try:
+            if not type in LATEST_TYPE_WORDS and not self.__is_from_and_to(options['from'], options['to']):
+                raise ValueError
+        except ValueError:
+            errorlog("FROMとTOが設定されていません。(タイプがlatest以外はFROMとTOの設定が必要)")
+            return
+
+        if self.__is_from_and_to(options['from'], options['to']):
+            from_split = options['from'].split(",")
+            ym_from = from_split[0]
+            week_from = from_split[1]
+
+            to_split = options['to'].split(",")
+            ym_to = to_split[0]
+            week_to = to_split[1]
+        else:
+            ym_from = ''
+            week_from = ''
+            ym_to = ''
+            week_to = ''
 
         search_options = {
             'page': '1',
@@ -49,4 +68,9 @@ class Command(BaseCommand):
             'search': '',
         }
         nword_check_service = NegativeWordCheckService()
-        nword_check_service.command_exec(search_options, latest_flg)
+        nword_check_service.command_exec(search_options, type)
+
+    def __is_from_and_to(self, from_arg: str, to_arg: str) -> bool:
+        if not from_arg == '' and not to_arg == '':
+            return True
+        return False

@@ -5,19 +5,20 @@ from ..utils.common_utils import debug, get_week_of_month
 from selenium.webdriver.remote.webelement import WebElement
 from datetime import datetime
 from .gspread_service import GspreadService
+from ..constants import *
 
 class NegativeWordCheckService(BaseService):
     def __init__(self):
         super().__init__()
         self.gspread_service = GspreadService()
 
-    def command_exec(self, options: dict[str], latest_flg: bool) -> None:
+    def command_exec(self, options: dict[str], type: str) -> None:
         """
         コマンド実行時の処理
         """
         self.login()
-        if latest_flg == True:
-            self.__exec_latest_mode(options)
+        if type in LATEST_TYPE_WORDS:
+            self.__exec_latest_type(options)
         else:
             nword_list = self.__get_nword_list()
             count = 0
@@ -25,10 +26,16 @@ class NegativeWordCheckService(BaseService):
                 options['search_string'] = nword
                 options['page'] = '1'
                 count += self.__count_target_range_nword(options)
+            records = {
+                'date': options['ym_from'] + ' 第' + options['week_from'] + '週 ~ ' + \
+                    options['ym_to'] + ' 第' + options['week_to'] + '週',
+                'count': count,
+            }
+            self.__insert_nword_numbers(records)
 
-    def __exec_latest_mode(self, options: dict[str]) -> None:
+    def __exec_latest_type(self, options: dict[str]) -> None:
         """
-        latest_flgがTrueの時に実行する処理
+        typeがlatestの時に実行する処理
         """
         today = datetime.today().date()
         week_of_month = get_week_of_month(today)
@@ -47,6 +54,7 @@ class NegativeWordCheckService(BaseService):
             'date':formatted_date + ' 第' + str(week_of_month) + '週',
             'count': count,
         }
+        debug(records)
         self.__insert_nword_numbers(records)
 
     def __count_target_range_nword(self, options: dict[str]) -> int:
