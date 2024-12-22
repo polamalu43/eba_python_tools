@@ -1,17 +1,20 @@
 from .base_service import BaseService
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from time import sleep
 from ..utils.env_utils import env
 from ..utils.common_utils import debug, get_week_of_month
 from selenium.webdriver.remote.webelement import WebElement
-from datetime import datetime, date
+from datetime import datetime
+from .gspread_service import GspreadService
 
 class NegativeWordCheckService(BaseService):
-    def exec(self, options: dict[str], latest_flg: bool) -> None:
+    def __init__(self):
+        super().__init__()
+        self.gspread_service = GspreadService()
+
+    def command_exec(self, options: dict[str], latest_flg: bool) -> None:
+        """
+        コマンド実行時の処理
+        """
         self.login()
         if latest_flg == True:
             today = datetime.today().date()
@@ -27,8 +30,11 @@ class NegativeWordCheckService(BaseService):
                 options['search_string'] = nword
                 options['page'] = '1'
                 count += self.__count_target_range_nword(options)
-                debug(options)
-                debug(count)
+            records = {
+                'date':formatted_date + ' 第' + str(week_of_month) + '週',
+                'count': count,
+            }
+            self.__input_nword_numbers(records)
         else:
             nword_list = self.__get_nword_list()
             count = 0
@@ -63,10 +69,38 @@ class NegativeWordCheckService(BaseService):
         return count_nword
 
     def __get_nword_list(self):
-        return self.get_gspread_col_data(env('TARGET_GSPREAD_URL'), 0, 1)
+        """
+        スプレッドシートの指定した範囲からネガティブワード一覧を取得
+        """
+        return self.gspread_service.get_col_data(
+            env('TARGET_GSPREAD_URL'),
+            env('NWORD_LIST_SHEET'),
+            1
+        )
 
-    def __update_nword_list(self):
-        self.update_gspread_col_data(env('TARGET_GSPREAD_URL'), 1, 1)
+    def __insert_nword_numbers(self, records: dict[str | int], col: int = 1) -> None:
+        """
+        スプレッドシートの指定した範囲に検索したネガティブワードの件数と日付を入力
+        """
+        last_row = self.gspread_service.get_last_row(
+            env('TARGET_GSPREAD_URL'),
+            env('NWORD_NUMBER_INSERT_SHEET')
+        )
+        input_row = last_row + 1
+        self.gspread_service.update_cell(
+            env('TARGET_GSPREAD_URL'),
+            env('NWORD_NUMBER_INSERT_SHEET'),
+            input_row,
+            col,
+            records['date'],
+        )
+        self.gspread_service.update_cell(
+            env('TARGET_GSPREAD_URL'),
+            env('NWORD_NUMBER_INSERT_SHEET'),
+            input_row,
+            col + 1,
+            records['count'],
+        )
 
     def __get_nword_url(self, options: dict[str]) -> str:
         """
@@ -94,7 +128,7 @@ class NegativeWordCheckService(BaseService):
             + search_param
         return url
 
-    def __count_page(self, pages: WebElement) -> int:
+    def __count_page(self, pages: dict[WebElement]) -> int:
         """
         週報検索ページ検索結果のページ数を数える
         """
@@ -108,7 +142,7 @@ class NegativeWordCheckService(BaseService):
         ]
         return len(filtered_page_elements)
 
-    def __count_table_row(self, table: WebElement) -> int:
+    def __count_table_row(self, table: dict[WebElement]) -> int:
         """
         週報検索ページ検索結果のテーブル行数を数える
         """

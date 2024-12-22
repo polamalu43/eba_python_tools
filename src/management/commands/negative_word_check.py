@@ -48,5 +48,5 @@ class Command(BaseCommand):
             'week_to': week_to,
             'search': '',
         }
-        service = NegativeWordCheckService()
-        service.exec(search_options, latest_flg)
+        nword_check_service = NegativeWordCheckService()
+        nword_check_service.command_exec(search_options, latest_flg)
