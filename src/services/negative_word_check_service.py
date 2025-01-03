@@ -32,21 +32,20 @@ class NegativeWordCheckService(BaseService):
         today = datetime.today().date()
         previous_monday = get_previous_monday(today)
         week_of_month = get_week_of_month(previous_monday)
-        formatted_date = today.strftime('%Y年%m月')
+        formatted_date = previous_monday.strftime('%Y-%m')
         options['ym_from'] = formatted_date
         options['week_from'] = str(week_of_month)
         options['ym_to'] = formatted_date
         options['week_to'] = str(week_of_month)
         nword_list = self.__get_nword_list()
         count = 0
-
         for nword in nword_list:
             options['search_string'] = nword
             options['page'] = '1'
             count += self.__count_nword_sum(options)
-
+        converted_date = self.__convert_ym_format(formatted_date)
         records = {
-            'date':formatted_date + ' 第' + str(week_of_month) + '週',
+            'date': converted_date + ' 第' + str(week_of_month) + '週',
             'count': count,
         }
         self.__insert_nword_number(records)
@@ -73,10 +72,8 @@ class NegativeWordCheckService(BaseService):
             options['search_string'] = nword
             options['page'] = '1'
             count += self.__count_nword_sum(options)
-        f_year, f_month = options['ym_from'].split('-')
-        t_year, t_month = options['ym_to'].split('-')
-        ym_from = f_year + '年' + f_month + '月'
-        ym_to = t_year + '年' + t_month + '月'
+        ym_from = self.__convert_ym_format(options['ym_from'])
+        ym_to = self.__convert_ym_format(options['ym_to'])
         records = {
             'date': ym_from + ' 第' + options['week_from'] + '週 ~ ' + \
                 ym_to + ' 第' + options['week_to'] + '週',
@@ -250,3 +247,7 @@ class NegativeWordCheckService(BaseService):
             else:
                 count_list[week.text] = 1
         return True
+
+    def __convert_ym_format(self, ym):
+        year, month = ym.split('-')
+        return year + '年' + month + '月'
