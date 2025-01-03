@@ -1,7 +1,6 @@
 from .base_service import BaseService
 from selenium.webdriver.common.by import By
-from ..utils.common_utils import env
-from ..utils.common_utils import debug, get_week_of_month, get_previous_monday
+from ..utils.common_utils import env, debug, errorlog, get_week_of_month, get_previous_monday
 from selenium.webdriver.remote.webelement import WebElement
 from datetime import datetime
 from .gspread_service import GspreadService
@@ -21,8 +20,10 @@ class NegativeWordCheckService(BaseService):
             self.__exec_latest_type(options)
         elif type in GROUPING_TYPE_WORDS:
             self.__exec_grouping_type(options)
-        else:
+        elif type in SUM_TYPE_WORDS:
             self.__exec_sum_type(options)
+        else:
+            errorlog('該当するタイプの処理がありませんでした。')
 
     def __exec_latest_type(self, options: dict[str]) -> None:
         """
@@ -31,7 +32,7 @@ class NegativeWordCheckService(BaseService):
         today = datetime.today().date()
         previous_monday = get_previous_monday(today)
         week_of_month = get_week_of_month(previous_monday)
-        formatted_date = today.strftime('%Y-%m')
+        formatted_date = today.strftime('%Y年%m月')
         options['ym_from'] = formatted_date
         options['week_from'] = str(week_of_month)
         options['ym_to'] = formatted_date
@@ -72,9 +73,13 @@ class NegativeWordCheckService(BaseService):
             options['search_string'] = nword
             options['page'] = '1'
             count += self.__count_nword_sum(options)
+        f_year, f_month = options['ym_from'].split('-')
+        t_year, t_month = options['ym_to'].split('-')
+        ym_from = f_year + '年' + f_month + '月'
+        ym_to = t_year + '年' + t_month + '月'
         records = {
-            'date': options['ym_from'] + ' 第' + options['week_from'] + '週 ~ ' + \
-                options['ym_to'] + ' 第' + options['week_to'] + '週',
+            'date': ym_from + ' 第' + options['week_from'] + '週 ~ ' + \
+                ym_to + ' 第' + options['week_to'] + '週',
             'count': count,
         }
         self.__insert_nword_number(records)
