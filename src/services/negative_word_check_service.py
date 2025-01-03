@@ -42,13 +42,13 @@ class NegativeWordCheckService(BaseService):
         for nword in nword_list:
             options['search_string'] = nword
             options['page'] = '1'
-            count += self.__count_target_range_nword(options)
+            count += self.__count_nword_sum(options)
 
         records = {
             'date':formatted_date + ' 第' + str(week_of_month) + '週',
             'count': count,
         }
-        self.__insert_nword_numbers(records)
+        self.__insert_nword_number(records)
 
     def __exec_grouping_type(self, options: dict[str]) -> None:
         """
@@ -60,6 +60,7 @@ class NegativeWordCheckService(BaseService):
             options['search_string'] = nword
             options['page'] = WEEKLY_REPORT_FIRST_PAGE
             self.__count_nword_grouping(options, count_list)
+        self.__insert_nword_number_list(count_list)
 
     def __exec_sum_type(self, options: dict[str]) -> None:
         """
@@ -76,7 +77,7 @@ class NegativeWordCheckService(BaseService):
                 options['ym_to'] + ' 第' + options['week_to'] + '週',
             'count': count,
         }
-        self.__insert_nword_numbers(records)
+        self.__insert_nword_number(records)
 
     def __count_nword_grouping(self, options: dict[str], count_list: dict[str | int]) -> None:
         """
@@ -136,7 +137,7 @@ class NegativeWordCheckService(BaseService):
             1
         )
 
-    def __insert_nword_numbers(self, records: dict[str | int], col: int = 1) -> None:
+    def __insert_nword_number(self, records: dict[str | int], target_col: int = 1) -> None:
         """
         スプレッドシートの指定した範囲に検索したネガティブワードの件数と日付を入力
         """
@@ -144,20 +145,38 @@ class NegativeWordCheckService(BaseService):
             env('TARGET_GSPREAD_URL'),
             env('NWORD_NUMBER_INSERT_SHEET')
         )
-        input_row = last_row + 1
+        target_row = last_row + 1
         self.gspread_service.update_cell(
             env('TARGET_GSPREAD_URL'),
             env('NWORD_NUMBER_INSERT_SHEET'),
-            input_row,
-            col,
+            target_row,
+            target_col,
             records['date'],
         )
         self.gspread_service.update_cell(
             env('TARGET_GSPREAD_URL'),
             env('NWORD_NUMBER_INSERT_SHEET'),
-            input_row,
-            col + 1,
+            target_row,
+            target_col + 1,
             records['count'],
+        )
+
+    def __insert_nword_number_list(self, data: dict[str,  int], target_col: int = 1) -> None:
+        """
+        辞書からスプレッドシートの指定した範囲に検索したネガティブワードの件数と日付を入力
+        """
+        last_row = self.gspread_service.get_last_row(
+            env('TARGET_GSPREAD_URL'),
+            env('NWORD_NUMBER_INSERT_SHEET')
+        )
+        target_row = last_row + 1
+        data = sorted([[key, value] for key, value in data.items()])
+        self.gspread_service.update(
+            env('TARGET_GSPREAD_URL'),
+            env('NWORD_NUMBER_INSERT_SHEET'),
+            data,
+            target_row,
+            target_col
         )
 
     def __get_nword_url(self, options: dict[str]) -> str:
@@ -212,15 +231,17 @@ class NegativeWordCheckService(BaseService):
         teble_elements = parse_html_for_table.find_all('td', class_='weekly_report_search-td')
         return len(teble_elements)
 
-    def __count_table_row_grouping(self, table: dict[WebElement], count_list: dict[str | int]) -> None:
+    def __count_table_row_grouping(self, table: dict[WebElement], count_list: dict[str, int]) -> bool:
         """
-        週報検索ページ検索結果のテーブル行数を数える
+        グルーピングオプションの設定時に週報検索ページ検索結果のテーブル行数を数える
         """
-        if not table:
-            return 0
+        if not table or not table[0]:
+            return False
         parse_html_for_table = self.get_parse_html(table[0].get_attribute('outerHTML'))
         tr_elements = parse_html_for_table.select('tr > td:nth-of-type(2)')
-        debug(tr_elements)
-        return
-        return len(teble_elements)
-
+        for week in tr_elements:
+            if week.text in count_list:
+                count_list[week.text] += 1
+            else:
+                count_list[week.text] = 1
+        return True

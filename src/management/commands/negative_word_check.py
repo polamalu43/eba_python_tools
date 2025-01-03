@@ -53,7 +53,6 @@ class Command(BaseCommand):
             week_from = ''
             ym_to = ''
             week_to = ''
-
         search_options = {
             'page': WEEKLY_REPORT_PAGE,
             'search_string': '',

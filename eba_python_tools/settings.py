@@ -26,7 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'src'
+    'src',
 ]
 
 MIDDLEWARE = [
@@ -44,7 +44,7 @@ ROOT_URLCONF = 'eba_python_tools.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ["templates"],
+        'DIRS': ['templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -116,9 +116,9 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGGING_CONFIG = None
-
 # logging.config.dictConfig(...)
+
+LOGGING_CONFIG = None
 
 LOGGING = {
     "version": 1,
@@ -177,5 +177,4 @@ LOGGING = {
             'propagate': False,
         },
     },
-
 }

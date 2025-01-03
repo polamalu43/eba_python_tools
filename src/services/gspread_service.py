@@ -1,4 +1,5 @@
 import gspread
+from gspread.utils import rowcol_to_a1
 from google.oauth2.service_account import Credentials
 from ..constants import *
 from ..utils.common_utils import env
@@ -38,6 +39,17 @@ class GspreadService():
     ) -> None:
         worksheet = self.get_worksheet(gspread_url, worksheet_name)
         worksheet.update_cell(row, col, value)
+
+    def update(self,
+        gspread_url: str,
+        worksheet_name: str,
+        data: list,
+        row: int,
+        col: int
+    ) -> None:
+        worksheet = self.get_worksheet(gspread_url, worksheet_name)
+        start_cell = rowcol_to_a1(row, col)
+        worksheet.update(start_cell, data)
 
     def get_worksheet(self, gspread_url: str, worksheet_name: str) -> Type[object]:
         gc = self.authenticate_gspread()

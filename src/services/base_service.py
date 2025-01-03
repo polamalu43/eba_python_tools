@@ -14,7 +14,10 @@ class BaseService():
         self.options = Options()
         self.options.add_argument("--headless")
         self.options.add_argument('--no-sandbox')
-        self.options.add_argument('--disable-dev-shm-usage')
+        # self.options.add_argument('--disable-dev-shm-usage') 不要かも
+
+        # self.options.add_argument('--disable-gpu')  # GPUを無効化
+        # self.options.add_argument('--disable-software-rasterizer')  # ソフトウェアレンダリング無効化
         self.driver = webdriver.Chrome(self.options)
 
     def login(self) -> None:
