@@ -392,7 +392,7 @@ class NegativeWordCheckService(BaseService):
 
     def __convert_ym_format(self, ym):
         year, month = ym.split('-')
-        return year + '年' + month + '月'
+        return f"{year}年{int(month)}月"
 
     def __convert_dateweek_to_number(self, dateweek: str) -> int:
         """
