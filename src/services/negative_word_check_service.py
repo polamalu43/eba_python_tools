@@ -1,5 +1,4 @@
 from .base_service import BaseService
-from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from ..utils.common_utils import env, errorlog, get_week_of_month, get_previous_monday
 from datetime import datetime
@@ -23,12 +22,19 @@ class NegativeWordCheckService(BaseService):
         self.login()
         if type in LATEST_TYPE_WORDS:
             self.__exec_latest_type(options)
+            print('処理が完了しました。')
         elif type in GROUPING_TYPE_WORDS:
             self.__exec_grouping_type(options)
+            print('処理が完了しました。')
         elif type in SUM_TYPE_WORDS:
             self.__exec_sum_type(options)
+            print('処理が完了しました。')
         elif type in CSV_TYPE_WORDS:
             self.__exec_csv_type(options)
+            print(
+                '処理が完了しました。以下のディレクトリにCSVファイルを格納しています。\n'
+                + DOWNLOAD_DIR
+            )
         else:
             raise CommandError('該当するタイプの処理がありませんでした。')
 
@@ -96,10 +102,12 @@ class NegativeWordCheckService(BaseService):
         for nword in nword_list:
             options['search_string'] = nword
             options['page'] = '1'
-            self.__download_csv(options)
+            is_download = self.__download_csv(options)
+            if not is_download:
+                continue
             self.__rename_csv_filename(options['search_string'])
 
-    def __download_csv(self, options: dict[str]) -> None:
+    def __download_csv(self, options: dict[str]) -> bool:
         """
         検索ページの検索結果をCSVでダウンロードする。(検索ワード毎にファイルをダウンロード)
         """
@@ -112,11 +120,17 @@ class NegativeWordCheckService(BaseService):
             self.__count_search_result()
 
             if self.__count_search_result() >= 1:
-                elements = self.driver.find_elements(By.XPATH, '//input[@name="download" and @value="CSVダウンロード"]')
+                elements = self.find_elements(
+                    'XPATH',
+                    '//input[@name="download" and @value="CSVダウンロード"]'
+                )
+            else:
+                return False
 
             if elements:
                 elements[0].click()
                 self.__wait_csv_file_download()
+                return True
             else:
                 raise Exception("CSVダウンロードボタンが見つかりませんでした")
         except Exception as e:
@@ -167,7 +181,7 @@ class NegativeWordCheckService(BaseService):
         週報検索ページ検索結果の件数を出力する。
         """
         try:
-            elements = self.driver.find_element(By.XPATH, '//p[@class="now_page_info"]')
+            elements = self.find_element('XPATH', '//p[@class="now_page_info"]')
             text = elements.text
             match = re.search(r'全(\d+)件', text)
 
@@ -191,21 +205,21 @@ class NegativeWordCheckService(BaseService):
             errorlog(f"検索ページの読み込み中にエラーが発生しました: {e}")
             raise
 
-        pages = self.driver.find_elements(By.XPATH, value='//div[@class="pagination_navi"]')
+        pages = self.find_elements('XPATH', value='//div[@class="pagination_navi"]')
         count_page = self.__count_page(pages)
         if count_page >= 2:
             for i in range(1, count_page + 1):
                 if i == 1:
-                    table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
+                    table = self.find_elements('XPATH', value='//table[@name="contact"]')
                     self.__count_table_row_grouping(table, count_list)
                     continue
                 options['page'] = str(i)
                 url = self.__get_nword_url(options)
                 self.driver.get(url)
-                table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
+                table = self.find_elements('XPATH', value='//table[@name="contact"]')
                 self.__count_table_row_grouping(table, count_list)
         else:
-            table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
+            table = self.find_elements('XPATH', value='//table[@name="contact"]')
             self.__count_table_row_grouping(table, count_list)
 
     def __count_nword_sum(self, options: dict[str]) -> int:
@@ -220,22 +234,22 @@ class NegativeWordCheckService(BaseService):
             errorlog(f"検索ページの読み込み中にエラーが発生しました: {e}")
             raise
 
-        pages = self.driver.find_elements(By.XPATH, value='//div[@class="pagination_navi"]')
+        pages = self.find_elements('XPATH', value='//div[@class="pagination_navi"]')
         count_page = self.__count_page(pages)
         count_nword = 0
         if count_page >= 2:
             for i in range(1, count_page + 1):
                 if i == 1:
-                    table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
+                    table = self.find_elements('XPATH', value='//table[@name="contact"]')
                     count_nword += self.__count_table_row(table)
                     continue
                 options['page'] = str(i)
                 url = self.__get_nword_url(options)
                 self.driver.get(url)
-                table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
+                table = self.find_elements('XPATH', value='//table[@name="contact"]')
                 count_nword += self.__count_table_row(table)
         else:
-            table = self.driver.find_elements(By.XPATH, value='//table[@name="contact"]')
+            table = self.find_elements('XPATH', value='//table[@name="contact"]')
             count_nword = self.__count_table_row(table)
         return count_nword
 

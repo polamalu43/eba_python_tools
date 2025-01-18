@@ -6,9 +6,8 @@ from selenium.common.exceptions import WebDriverException, TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup
 import base64
-from time import sleep
 from ..constants import *
-from ..utils.common_utils import env, errorlog, debuglog
+from ..utils.common_utils import env, errorlog
 
 class BaseService():
     def __init__(self):
@@ -53,49 +52,26 @@ class BaseService():
     def login_index_authentication(self) -> None:
         try:
             self.driver.get(env('EBA_REPORT_INDEX_URL'))
-            self.element(
-                selector='//input[@name="login_id"]',
-                _type=By.XPATH,
-                style='input',
-                text=env('AUTHENTICATION_USER_NAME')
+            login_id_elem = self.find_element(
+                'XPATH',
+                '//input[@name="login_id"]'
             )
-            self.element(
-                selector='//input[@name="login_pass"]',
-                _type=By.XPATH,
-                style='input',
-                text=env('INDEX_AUTHENTICATION_PASSWORD')
+            login_id_elem.send_keys(env('AUTHENTICATION_USER_NAME'))
+
+            login_pass_elem = self.find_element(
+                'XPATH',
+                '//input[@name="login_pass"]'
             )
-            self.element(
-                selector='//button[@name="accept"]',
-                _type=By.XPATH,
-                style='click'
+            login_pass_elem.send_keys(env('INDEX_AUTHENTICATION_PASSWORD'))
+
+            accept_button_elem = self.find_element(
+                'XPATH',
+                '//button[@name="accept"]'
             )
+            accept_button_elem.click()
         except Exception as e:
             errorlog(f"週報システムログイン時にエラーが発生しました: {e}")
             raise
-
-    def element(
-        self,
-        selector: str = '',
-        _type: str = 'xpath',
-        multi: bool = False,
-        target_num: int =0,
-        style: str ='get',
-        text: str = '',
-        non_sleep: bool = False
-    ):
-        if multi:
-            element = self.driver.find_elements(by=_type, value=selector)[target_num]
-        else:
-            element = self.driver.find_element(by=_type, value=selector)
-        if style == 'get':
-            return element
-        if style == 'click':
-            element.click()
-            if not non_sleep:
-                sleep(4)
-        if style == 'input':
-            element.send_keys(text)
 
     def get_parse_html(self, html: WebElement) -> BeautifulSoup:
         try:
@@ -112,3 +88,11 @@ class BaseService():
         except TimeoutException as e:
             errorlog(f"ページの読み込み時間が{env('LOADING_WAIT_TIME')}秒を超えたためタイムアウトしました。: {e}")
             raise
+
+    def find_elements(self, type, value):
+        by_type = getattr(By, type)
+        return self.driver.find_elements(by_type, value)
+
+    def find_element(self, type, value):
+        by_type = getattr(By, type)
+        return self.driver.find_element(by_type, value)
