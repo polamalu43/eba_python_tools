@@ -7,6 +7,7 @@ from .gspread_service import GspreadService
 from ..constants import *
 from django.core.management.base import CommandError
 from typing import Type
+import re
 
 class NegativeWordCheckService(BaseService):
     def __init__(self):
@@ -190,11 +191,16 @@ class NegativeWordCheckService(BaseService):
             env('NWORD_NUMBER_INSERT_SHEET')
         )
         target_row = last_row + 1
-        data = sorted([[key, value] for key, value in data.items()])
+        before_sort_data = [
+            [key, value, self.__convert_dateweek_to_number(key)] for key, value in data.items()
+        ]
+        sorted_data = [
+            [entry[0], entry[1]] for entry in sorted(before_sort_data, key=lambda x: x[2])
+        ]
         self.gspread_service.update(
             env('TARGET_GSPREAD_URL'),
             env('NWORD_NUMBER_INSERT_SHEET'),
-            data,
+            sorted_data,
             target_row,
             target_col
         )
@@ -259,12 +265,12 @@ class NegativeWordCheckService(BaseService):
         teble_elements = parse_html_for_table.find_all('td', class_='weekly_report_search-td')
         return len(teble_elements)
 
-    def __count_table_row_grouping(self, table: dict[WebElement], count_list: dict[str, int]) -> bool:
+    def __count_table_row_grouping(self, table: dict[WebElement], count_list: dict[str, int]) -> None:
         """
         グルーピングオプションの設定時に週報検索ページ検索結果のテーブル行数を数える
         """
         if not table or not table[0]:
-            return False
+            return None
         parse_html_for_table = self.get_parse_html(table[0].get_attribute('outerHTML'))
         tr_elements = parse_html_for_table.select('tr > td:nth-of-type(2)')
         for week in tr_elements:
@@ -272,8 +278,20 @@ class NegativeWordCheckService(BaseService):
                 count_list[week.text] += 1
             else:
                 count_list[week.text] = 1
-        return True
 
     def __convert_ym_format(self, ym):
         year, month = ym.split('-')
         return year + '年' + month + '月'
+
+    def __convert_dateweek_to_number(self, dateweek: str) -> int:
+        """
+        「Y年m月 w週」形式の文字列を数値に変換する(並び替えをするため)
+        """
+        match = re.match(r'(\d{4})年(\d{1,2})月 第(\d+)週', dateweek)
+        if match:
+            year = match.group(1)  # 年
+            month = match.group(2).zfill(2)  # 月（1桁の場合はゼロ埋め）
+            week = match.group(3)  # 週
+            return int(year + month + week)  # 結合して整数に変換
+        else:
+            raise ValueError("日付の形式が正しくありません。")
