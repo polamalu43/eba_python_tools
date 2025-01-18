@@ -8,6 +8,8 @@ from ..constants import *
 from django.core.management.base import CommandError
 from typing import Type
 import re
+import glob
+import time
 
 class NegativeWordCheckService(BaseService):
     def __init__(self):
@@ -25,6 +27,8 @@ class NegativeWordCheckService(BaseService):
             self.__exec_grouping_type(options)
         elif type in SUM_TYPE_WORDS:
             self.__exec_sum_type(options)
+        elif type in CSV_TYPE_WORDS:
+            self.__exec_csv_type(options)
         else:
             raise CommandError('該当するタイプの処理がありませんでした。')
 
@@ -83,6 +87,97 @@ class NegativeWordCheckService(BaseService):
             'count': count,
         }
         self.__insert_nword_number(records)
+
+    def __exec_csv_type(self, options: dict[str]) -> None:
+        """
+        typeがcsvの時に実行する処理
+        """
+        nword_list = self.__get_nword_list()
+        for nword in nword_list:
+            options['search_string'] = nword
+            options['page'] = '1'
+            self.__download_csv(options)
+            self.__rename_csv_filename(options['search_string'])
+
+    def __download_csv(self, options: dict[str]) -> None:
+        """
+        検索ページの検索結果をCSVでダウンロードする。(検索ワード毎にファイルをダウンロード)
+        """
+        try:
+            url = self.__get_nword_url(options)
+            self.driver.get(url)
+            self.wait_loading_complete()
+
+            elements = None
+            self.__count_search_result()
+
+            if self.__count_search_result() >= 1:
+                elements = self.driver.find_elements(By.XPATH, '//input[@name="download" and @value="CSVダウンロード"]')
+
+            if elements:
+                elements[0].click()
+                self.__wait_csv_file_download()
+            else:
+                raise Exception("CSVダウンロードボタンが見つかりませんでした")
+        except Exception as e:
+            errorlog(f"CSVダウンロード処理中にエラーが発生しました: {e}")
+            raise
+
+    def __rename_csv_filename(self, search_string) -> None:
+        """
+        ダウンロードしたCSVファイルのファイル名を変更
+        """
+        file_pattern = os.path.join(DOWNLOAD_DIR, '*_weekly_report_search.csv')
+        files = glob.glob(file_pattern)
+
+        if files:
+            for file in files:
+                timestamp = os.path.basename(file).split('_')[0]
+                new_file_name = f"{timestamp}_weekly_report_search_{search_string}.csv"
+                new_file_path = os.path.join(DOWNLOAD_DIR, new_file_name)
+                try:
+                    os.rename(file, new_file_path)
+                except Exception as e:
+                    errorlog(f"ファイル名の変更中にエラーが発生しました: {e}")
+                    raise
+        else:
+            raise Exception("該当するファイルが見つかりませんでした")
+
+    def __wait_csv_file_download(self) -> None:
+        timeout_second = int(env('DOWNLOAD_WAIT_TIME'))
+        for i in range(timeout_second + 1):
+            match_file_path = os.path.join(DOWNLOAD_DIR, '*_weekly_report_search.csv')
+            files = glob.glob(match_file_path)
+
+            if files:
+                extensions = [
+                    file_name for file_name in files if '.crdownload' in os.path.splitext(file_name)
+                ]
+                if not extensions:
+                    break
+
+            if i >= timeout_second:
+                raise Exception('待機タイムアウト時間(秒)内にダウンロードが完了しませんでした')
+
+            time.sleep(1)
+        return None
+
+    def __count_search_result(self) -> int:
+        """
+        週報検索ページ検索結果の件数を出力する。
+        """
+        try:
+            elements = self.driver.find_element(By.XPATH, '//p[@class="now_page_info"]')
+            text = elements.text
+            match = re.search(r'全(\d+)件', text)
+
+            if match:
+                return int(match.group(1))
+            else:
+                raise Exception("件数が取得できませんでした")
+        except Exception as e:
+            errorlog(f"検索結果の件数を取得中にエラーが発生しました: {e}")
+            raise
 
     def __count_nword_grouping(self, options: dict[str], count_list: dict[str | int]) -> None:
         """

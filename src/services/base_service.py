@@ -8,13 +8,15 @@ from bs4 import BeautifulSoup
 import base64
 from time import sleep
 from ..constants import *
-from ..utils.common_utils import env, errorlog
+from ..utils.common_utils import env, errorlog, debuglog
 
 class BaseService():
     def __init__(self):
         self.options = Options()
         self.options.add_argument("--headless") # ヘッドレスモード
         self.options.add_argument('--disable-gpu')  # GPUを無効化
+        prefs = {"download.default_directory": DOWNLOAD_DIR}
+        self.options.add_experimental_option("prefs", prefs)
         self.driver = webdriver.Chrome(self.options)
 
     def login(self) -> None:
