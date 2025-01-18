@@ -261,16 +261,17 @@ class NegativeWordCheckService(BaseService):
             return self.gspread_service.get_col_data(
                 env('TARGET_GSPREAD_URL'),
                 env('NWORD_LIST_SHEET'),
-                1
+                int(env('GET_NWORD_LIST_SHEET_TARGET_COL'))
             )
         except Exception as e:
             errorlog(f"スプレッドシートからネガティブワード一覧を取得中にエラーが発生しました: {e}")
             raise
 
-    def __insert_nword_number(self, records: dict[str | int], target_col: int = 1) -> None:
+    def __insert_nword_number(self, records: dict[str | int]) -> None:
         """
         スプレッドシートの指定した範囲に検索したネガティブワードの件数と日付を入力
         """
+        target_col = int(env('INSERT_NNWORD_NUMBER_TARGET_COL'))
         last_row = self.gspread_service.get_last_row(
             env('TARGET_GSPREAD_URL'),
             env('NWORD_NUMBER_INSERT_SHEET')
@@ -291,10 +292,11 @@ class NegativeWordCheckService(BaseService):
             records['count'],
         )
 
-    def __insert_nword_number_list(self, data: dict[str,  int], target_col: int = 1) -> None:
+    def __insert_nword_number_list(self, data: dict[str,  int]) -> None:
         """
         辞書からスプレッドシートの指定した範囲に検索したネガティブワードの件数と日付を入力
         """
+        target_col = int(env('INSERT_NNWORD_NUMBER_LIST_TARGET_COL'))
         last_row = self.gspread_service.get_last_row(
             env('TARGET_GSPREAD_URL'),
             env('NWORD_NUMBER_INSERT_SHEET')

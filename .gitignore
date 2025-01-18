@@ -8,3 +8,4 @@ include
 __pycache__/
 csvs/*
 !csvs/.gitkeep
+venv
