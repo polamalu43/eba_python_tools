@@ -10,7 +10,7 @@ def env(key):
     env.read_env(os.path.join(BASE_DIR, '.env'))
     return env(key)
 
-def debug(value: any) -> None:
+def debuglog(value: any) -> None:
     return logging.debug(print(value))
 
 def errorlog(value: any) -> None:

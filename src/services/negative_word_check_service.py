@@ -1,10 +1,12 @@
 from .base_service import BaseService
 from selenium.webdriver.common.by import By
-from ..utils.common_utils import env, debug, errorlog, get_week_of_month, get_previous_monday
 from selenium.webdriver.remote.webelement import WebElement
+from ..utils.common_utils import env, errorlog, get_week_of_month, get_previous_monday
 from datetime import datetime
 from .gspread_service import GspreadService
 from ..constants import *
+from django.core.management.base import CommandError
+from typing import Type
 
 class NegativeWordCheckService(BaseService):
     def __init__(self):
@@ -23,7 +25,7 @@ class NegativeWordCheckService(BaseService):
         elif type in SUM_TYPE_WORDS:
             self.__exec_sum_type(options)
         else:
-            errorlog('該当するタイプの処理がありませんでした。')
+            raise CommandError('該当するタイプの処理がありませんでした。')
 
     def __exec_latest_type(self, options: dict[str]) -> None:
         """
@@ -83,10 +85,16 @@ class NegativeWordCheckService(BaseService):
 
     def __count_nword_grouping(self, options: dict[str], count_list: dict[str | int]) -> None:
         """
-        指定した範囲のネガティブワードの件数を合計で出力する。
+        指定した範囲のネガティブワードの件数をグルーピングで出力する。
         """
-        url = self.__get_nword_url(options)
-        self.driver.get(url)
+        try:
+            url = self.__get_nword_url(options)
+            self.driver.get(url)
+            self.wait_loading_complete()
+        except Exception as e:
+            errorlog(f"検索ページの読み込み中にエラーが発生しました: {e}")
+            raise
+
         pages = self.driver.find_elements(By.XPATH, value='//div[@class="pagination_navi"]')
         count_page = self.__count_page(pages)
         if count_page >= 2:
@@ -108,8 +116,14 @@ class NegativeWordCheckService(BaseService):
         """
         指定した範囲のネガティブワードの件数を合計で出力する。
         """
-        url = self.__get_nword_url(options)
-        self.driver.get(url)
+        try:
+            url = self.__get_nword_url(options)
+            self.driver.get(url)
+            self.wait_loading_complete()
+        except Exception as e:
+            errorlog(f"検索ページの読み込み中にエラーが発生しました: {e}")
+            raise
+
         pages = self.driver.find_elements(By.XPATH, value='//div[@class="pagination_navi"]')
         count_page = self.__count_page(pages)
         count_nword = 0
@@ -129,15 +143,19 @@ class NegativeWordCheckService(BaseService):
             count_nword = self.__count_table_row(table)
         return count_nword
 
-    def __get_nword_list(self):
+    def __get_nword_list(self) -> Type[object]:
         """
         スプレッドシートの指定した範囲からネガティブワード一覧を取得
         """
-        return self.gspread_service.get_col_data(
-            env('TARGET_GSPREAD_URL'),
-            env('NWORD_LIST_SHEET'),
-            1
-        )
+        try:
+            return self.gspread_service.get_col_data(
+                env('TARGET_GSPREAD_URL'),
+                env('NWORD_LIST_SHEET'),
+                1
+            )
+        except Exception as e:
+            errorlog(f"スプレッドシートからネガティブワード一覧を取得中にエラーが発生しました: {e}")
+            raise
 
     def __insert_nword_number(self, records: dict[str | int], target_col: int = 1) -> None:
         """
@@ -185,43 +203,51 @@ class NegativeWordCheckService(BaseService):
         """
         週報システムの週報検索ページにアクセスし必要なデータを取得するためのURLを生成
         """
-        base_url=env('WEEKLY_REPORT_SEARCH')
-        page_param = 'page=' + options['page']
-        search_string_param = 'search_string=' + options['search_string']
-        member_name_param = 'member_name=' + options['member_name']
-        max_page_count_param = 'max_page_count=' + options['max_page_count']
-        ym_from_param = 'ym_from=' + options['ym_from']
-        week_from_param = 'week_from=' + options['week_from']
-        ym_to_param = 'ym_to=' + options['ym_to']
-        week_to_param = 'week_to=' + options['week_to']
-        search_param = 'search=' + options['search']
-        url = base_url + '?' \
-            + page_param + '&' \
-            + search_string_param + '&' \
-            + member_name_param + '&' \
-            + max_page_count_param + '&' \
-            + ym_from_param + '&' \
-            + week_from_param + '&' \
-            + ym_to_param + '&' \
-            + week_to_param + '&' \
-            + search_param
-        return url
+        try:
+            base_url=env('WEEKLY_REPORT_SEARCH')
+            page_param = 'page=' + options['page']
+            search_string_param = 'search_string=' + options['search_string']
+            member_name_param = 'member_name=' + options['member_name']
+            max_page_count_param = 'max_page_count=' + options['max_page_count']
+            ym_from_param = 'ym_from=' + options['ym_from']
+            week_from_param = 'week_from=' + options['week_from']
+            ym_to_param = 'ym_to=' + options['ym_to']
+            week_to_param = 'week_to=' + options['week_to']
+            search_param = 'search=' + options['search']
+            url = base_url + '?' \
+                + page_param + '&' \
+                + search_string_param + '&' \
+                + member_name_param + '&' \
+                + max_page_count_param + '&' \
+                + ym_from_param + '&' \
+                + week_from_param + '&' \
+                + ym_to_param + '&' \
+                + week_to_param + '&' \
+                + search_param
+            return url
+        except KeyError as e:
+            errorlog(f"週報検索ページのURL生成に必要なパラメータが欠けています: {e}")
+            raise
 
     def __count_page(self, pages: dict[WebElement]) -> int:
         """
         週報検索ページ検索結果のページ数を数える
         """
-        if not pages:
-            return 0
-        parse_html_for_pages = self.get_parse_html(pages[0].get_attribute('outerHTML'))
-        page_elements = parse_html_for_pages.find_all('span', class_='pager_text')
-        filtered_page_elements = [
-            element for element in page_elements
-            if not any(
-                keyword in element.text for keyword in EXCEPTION_WEEKLY_REPORT_KEYWORDS
-            )
-        ]
-        return len(filtered_page_elements)
+        try:
+            if not pages:
+                return 0
+            parse_html_for_pages = self.get_parse_html(pages[0].get_attribute('outerHTML'))
+            page_elements = parse_html_for_pages.find_all('span', class_='pager_text')
+            filtered_page_elements = [
+                element for element in page_elements
+                if not any(
+                    keyword in element.text for keyword in EXCEPTION_WEEKLY_REPORT_KEYWORDS
+                )
+            ]
+            return len(filtered_page_elements)
+        except Exception as e:
+            errorlog(f"検索結果のページ数を数える際にエラーが発生しました: {e}")
+            raise
 
     def __count_table_row(self, table: dict[WebElement]) -> int:
         """

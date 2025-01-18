@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
 from ...services.negative_word_check_service import NegativeWordCheckService
-from ...utils.common_utils import debug, errorlog
 from ...constants import *
 
 class Command(BaseCommand):
@@ -33,12 +32,9 @@ class Command(BaseCommand):
         それ以外のケースで空の場合はエラーを発生させる。
         """
         type = options['type'] if not options['type'] == '' else 'l'
-        try:
-            if not type in LATEST_TYPE_WORDS and not self.__is_from_and_to(options['from'], options['to']):
-                raise ValueError
-        except ValueError:
-            errorlog("FROMとTOが設定されていません。(タイプがlatest以外はFROMとTOの設定が必要)")
-            return
+
+        if not type in LATEST_TYPE_WORDS and not self.__is_from_and_to(options['from'], options['to']):
+            raise CommandError("FROMとTOが設定されていません。(タイプがlatest以外はFROMとTOの設定が必要)")
 
         if self.__is_from_and_to(options['from'], options['to']):
             from_split = options['from'].split(",")
